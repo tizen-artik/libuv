@@ -19,6 +19,8 @@
  * IN THE SOFTWARE.
  */
 
+#ifndef __NUTTX__
+
 #include "uv.h"
 #include "internal.h"
 
@@ -81,3 +83,5 @@ static int uv__dlerror(uv_lib_t* lib) {
     return 0;
   }
 }
+
+#endif

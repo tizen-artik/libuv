@@ -38,7 +38,9 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#ifndef __NUTTX__
 #include <sys/uio.h>
+#endif
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -198,7 +200,11 @@ skip:
 
 
 static ssize_t uv__fs_mkdtemp(uv_fs_t* req) {
+#if defined(__NUTTX__)
+  return -1;
+#else
   return mkdtemp((char*) req->path) ? 0 : -1;
+#endif
 }
 
 
@@ -287,6 +293,9 @@ static int uv__fs_scandir_filter(const uv__dirent_t* dent) {
 
 
 static ssize_t uv__fs_scandir(uv_fs_t* req) {
+#if defined(__NUTTX__)
+  return -1;
+#else
   uv__dirent_t **dents;
   int saved_errno;
   int n;
@@ -320,10 +329,14 @@ out:
   req->ptr = NULL;
 
   return n;
+#endif
 }
 
 
 static ssize_t uv__fs_readlink(uv_fs_t* req) {
+#if defined(__NUTTX__)
+  return -1;
+#else
   ssize_t len;
   char* buf;
 
@@ -355,8 +368,8 @@ static ssize_t uv__fs_readlink(uv_fs_t* req) {
   req->ptr = buf;
 
   return 0;
+#endif
 }
-
 
 static ssize_t uv__fs_sendfile_emul(uv_fs_t* req) {
   struct pollfd pfd;
@@ -553,10 +566,14 @@ static ssize_t uv__fs_sendfile(uv_fs_t* req) {
 
 
 static ssize_t uv__fs_utime(uv_fs_t* req) {
+#if defined(__NUTTX__)
+  return -1;
+#else
   struct utimbuf buf;
   buf.actime = req->atime;
   buf.modtime = req->mtime;
   return utime(req->path, &buf); /* TODO use utimes() where available */
+#endif
 }
 
 
@@ -639,13 +656,15 @@ done:
 }
 
 static void uv__to_stat(struct stat* src, uv_stat_t* dst) {
+#if !defined(__NUTTX__)
   dst->st_dev = src->st_dev;
-  dst->st_mode = src->st_mode;
   dst->st_nlink = src->st_nlink;
   dst->st_uid = src->st_uid;
   dst->st_gid = src->st_gid;
   dst->st_rdev = src->st_rdev;
   dst->st_ino = src->st_ino;
+#endif
+  dst->st_mode = src->st_mode;
   dst->st_size = src->st_size;
   dst->st_blksize = src->st_blksize;
   dst->st_blocks = src->st_blocks;
@@ -708,20 +727,28 @@ static int uv__fs_stat(const char *path, uv_stat_t *buf) {
 
 
 static int uv__fs_lstat(const char *path, uv_stat_t *buf) {
+#if defined(__NUTTX__)
+  return -1;
+#else
   struct stat pbuf;
   int ret;
   ret = lstat(path, &pbuf);
   uv__to_stat(&pbuf, buf);
   return ret;
+#endif
 }
 
 
 static int uv__fs_fstat(int fd, uv_stat_t *buf) {
+#if defined(__NUTTX__)
+  return -1;
+#else
   struct stat pbuf;
   int ret;
   ret = fstat(fd, &pbuf);
   uv__to_stat(&pbuf, buf);
   return ret;
+#endif
 }
 
 
@@ -745,19 +772,22 @@ static void uv__fs_work(struct uv__work* w) {
     break;
 
     switch (req->fs_type) {
-    X(ACCESS, access(req->path, req->flags));
+#if !defined(__NUTTX__)
     X(CHMOD, chmod(req->path, req->mode));
     X(CHOWN, chown(req->path, req->uid, req->gid));
-    X(CLOSE, close(req->file));
     X(FCHMOD, fchmod(req->file, req->mode));
     X(FCHOWN, fchown(req->file, req->uid, req->gid));
+    X(FTRUNCATE, ftruncate(req->file, req->off));
+    X(LINK, link(req->path, req->new_path));
+    X(SYMLINK, symlink(req->path, req->new_path));
+#endif
+    X(ACCESS, access(req->path, req->flags));
+    X(CLOSE, close(req->file));
     X(FDATASYNC, uv__fs_fdatasync(req));
     X(FSTAT, uv__fs_fstat(req->file, &req->statbuf));
     X(FSYNC, fsync(req->file));
-    X(FTRUNCATE, ftruncate(req->file, req->off));
     X(FUTIME, uv__fs_futime(req));
     X(LSTAT, uv__fs_lstat(req->path, &req->statbuf));
-    X(LINK, link(req->path, req->new_path));
     X(MKDIR, mkdir(req->path, req->mode));
     X(MKDTEMP, uv__fs_mkdtemp(req));
     X(READ, uv__fs_read(req));
@@ -767,7 +797,6 @@ static void uv__fs_work(struct uv__work* w) {
     X(RMDIR, rmdir(req->path));
     X(SENDFILE, uv__fs_sendfile(req));
     X(STAT, uv__fs_stat(req->path, &req->statbuf));
-    X(SYMLINK, symlink(req->path, req->new_path));
     X(UNLINK, unlink(req->path));
     X(UTIME, uv__fs_utime(req));
     X(WRITE, uv__fs_write(req));

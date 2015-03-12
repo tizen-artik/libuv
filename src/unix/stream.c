@@ -30,7 +30,9 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#if !defined(__NUTTX__)
 #include <sys/uio.h>
+#endif
 #include <sys/un.h>
 #include <unistd.h>
 #include <limits.h> /* IOV_MAX */
@@ -647,8 +649,10 @@ static void uv__drain(uv_stream_t* stream) {
     uv__req_unregister(stream->loop, req);
 
     err = 0;
+#if !defined(__NUTTX__)
     if (shutdown(uv__stream_fd(stream), SHUT_WR))
       err = -errno;
+#endif
 
     if (err == 0)
       stream->flags |= UV_STREAM_SHUT;
@@ -725,6 +729,7 @@ static int uv__getiovmax() {
 }
 
 static void uv__write(uv_stream_t* stream) {
+#if !defined(__NUTTX__)
   struct iovec* iov;
   QUEUE* q;
   uv_write_t* req;
@@ -879,6 +884,7 @@ start:
 
   /* Notify select() thread about state change */
   uv__stream_osx_interrupt_select(stream);
+#endif
 }
 
 
@@ -998,6 +1004,9 @@ static int uv__stream_queue_fd(uv_stream_t* stream, int fd) {
 
 
 static int uv__stream_recv_cmsg(uv_stream_t* stream, struct msghdr* msg) {
+#if defined(__NUTTX__)
+  return -1;
+#else
   struct cmsghdr* cmsg;
 
   for (cmsg = CMSG_FIRSTHDR(msg); cmsg != NULL; cmsg = CMSG_NXTHDR(msg, cmsg)) {
@@ -1044,10 +1053,12 @@ static int uv__stream_recv_cmsg(uv_stream_t* stream, struct msghdr* msg) {
   }
 
   return 0;
+#endif
 }
 
 
 static void uv__read(uv_stream_t* stream) {
+#if !defined(__NUTTX__)
   uv_buf_t buf;
   ssize_t nread;
   struct msghdr msg;
@@ -1149,6 +1160,7 @@ static void uv__read(uv_stream_t* stream) {
       }
     }
   }
+#endif
 }
 
 

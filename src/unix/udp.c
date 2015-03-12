@@ -47,6 +47,7 @@ static int uv__udp_maybe_deferred_bind(uv_udp_t* handle,
 
 
 void uv__udp_close(uv_udp_t* handle) {
+#if !defined(__NUTTX__)
   uv__io_close(handle->loop, &handle->io_watcher);
   uv__handle_stop(handle);
 
@@ -54,10 +55,12 @@ void uv__udp_close(uv_udp_t* handle) {
     uv__close(handle->io_watcher.fd);
     handle->io_watcher.fd = -1;
   }
+#endif
 }
 
 
 void uv__udp_finish_close(uv_udp_t* handle) {
+#if !defined(__NUTTX__)
   uv_udp_send_t* req;
   QUEUE* q;
 
@@ -82,10 +85,12 @@ void uv__udp_finish_close(uv_udp_t* handle) {
   handle->recv_cb = NULL;
   handle->alloc_cb = NULL;
   /* but _do not_ touch close_cb */
+#endif
 }
 
 
 static void uv__udp_run_completed(uv_udp_t* handle) {
+#if !defined(__NUTTX__)
   uv_udp_send_t* req;
   QUEUE* q;
 
@@ -121,10 +126,12 @@ static void uv__udp_run_completed(uv_udp_t* handle) {
     if (!uv__io_active(&handle->io_watcher, UV__POLLIN))
       uv__handle_stop(handle);
   }
+#endif
 }
 
 
 static void uv__udp_io(uv_loop_t* loop, uv__io_t* w, unsigned int revents) {
+#if !defined(__NUTTX__)
   uv_udp_t* handle;
 
   handle = container_of(w, uv_udp_t, io_watcher);
@@ -137,10 +144,12 @@ static void uv__udp_io(uv_loop_t* loop, uv__io_t* w, unsigned int revents) {
     uv__udp_sendmsg(handle);
     uv__udp_run_completed(handle);
   }
+#endif
 }
 
 
 static void uv__udp_recvmsg(uv_udp_t* handle) {
+#if !defined(__NUTTX__)
   struct sockaddr_storage peer;
   struct msghdr h;
   ssize_t nread;
@@ -201,10 +210,12 @@ static void uv__udp_recvmsg(uv_udp_t* handle) {
       && count-- > 0
       && handle->io_watcher.fd != -1
       && handle->recv_cb != NULL);
+#endif
 }
 
 
 static void uv__udp_sendmsg(uv_udp_t* handle) {
+#if !defined(__NUTTX__)
   uv_udp_send_t* req;
   QUEUE* q;
   struct msghdr h;
@@ -242,6 +253,7 @@ static void uv__udp_sendmsg(uv_udp_t* handle) {
     QUEUE_INSERT_TAIL(&handle->write_completed_queue, &req->queue);
     uv__io_feed(handle->loop, &handle->io_watcher);
   }
+#endif
 }
 
 
@@ -254,18 +266,20 @@ static void uv__udp_sendmsg(uv_udp_t* handle) {
  * on other platforms so we don't enable it.
  */
 static int uv__set_reuse(int fd) {
+#if !defined(__NUTTX__)
   int yes;
 
-#if defined(SO_REUSEPORT) && !defined(__linux__)
+# if defined(SO_REUSEPORT) && !defined(__linux__)
   yes = 1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes)))
     return -errno;
-#else
+# else
   yes = 1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)))
     return -errno;
-#endif
+# endif
 
+#endif
   return 0;
 }
 
@@ -274,6 +288,7 @@ int uv__udp_bind(uv_udp_t* handle,
                  const struct sockaddr* addr,
                  unsigned int addrlen,
                  unsigned int flags) {
+#if !defined(__NUTTX__)
   int err;
   int yes;
   int fd;
@@ -302,16 +317,16 @@ int uv__udp_bind(uv_udp_t* handle,
   }
 
   if (flags & UV_UDP_IPV6ONLY) {
-#ifdef IPV6_V6ONLY
+# ifdef IPV6_V6ONLY
     yes = 1;
     if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &yes, sizeof yes) == -1) {
       err = -errno;
       goto out;
     }
-#else
+# else
     err = -ENOTSUP;
     goto out;
-#endif
+# endif
   }
 
   if (bind(fd, addr, addrlen)) {
@@ -328,12 +343,16 @@ out:
   uv__close(handle->io_watcher.fd);
   handle->io_watcher.fd = -1;
   return err;
+#else
+  return -1;
+#endif
 }
 
 
 static int uv__udp_maybe_deferred_bind(uv_udp_t* handle,
                                        int domain,
                                        unsigned int flags) {
+#if !defined(__NUTTX__)
   unsigned char taddr[sizeof(struct sockaddr_in6)];
   socklen_t addrlen;
 
@@ -365,6 +384,9 @@ static int uv__udp_maybe_deferred_bind(uv_udp_t* handle,
   }
 
   return uv__udp_bind(handle, (const struct sockaddr*) &taddr, addrlen, flags);
+#else
+  return -1;
+#endif
 }
 
 
@@ -375,6 +397,7 @@ int uv__udp_send(uv_udp_send_t* req,
                  const struct sockaddr* addr,
                  unsigned int addrlen,
                  uv_udp_send_cb send_cb) {
+#if !defined(__NUTTX__)
   int err;
   int empty_queue;
 
@@ -415,6 +438,7 @@ int uv__udp_send(uv_udp_send_t* req,
   else
     uv__io_start(handle->loop, &handle->io_watcher, UV__POLLOUT);
 
+#endif
   return 0;
 }
 
@@ -424,6 +448,7 @@ int uv__udp_try_send(uv_udp_t* handle,
                      unsigned int nbufs,
                      const struct sockaddr* addr,
                      unsigned int addrlen) {
+#if !defined(__NUTTX__)
   int err;
   struct msghdr h;
   ssize_t size;
@@ -456,6 +481,9 @@ int uv__udp_try_send(uv_udp_t* handle,
   }
 
   return size;
+#else
+  return -1;
+#endif
 }
 
 
@@ -463,6 +491,7 @@ static int uv__udp_set_membership4(uv_udp_t* handle,
                                    const struct sockaddr_in* multicast_addr,
                                    const char* interface_addr,
                                    uv_membership membership) {
+#if !defined(__NUTTX__)
   struct ip_mreq mreq;
   int optname;
   int err;
@@ -498,6 +527,7 @@ static int uv__udp_set_membership4(uv_udp_t* handle,
     return -errno;
   }
 
+#endif
   return 0;
 }
 
@@ -506,6 +536,7 @@ static int uv__udp_set_membership6(uv_udp_t* handle,
                                    const struct sockaddr_in6* multicast_addr,
                                    const char* interface_addr,
                                    uv_membership membership) {
+#if !defined(__NUTTX__)
   int optname;
   struct ipv6_mreq mreq;
   struct sockaddr_in6 addr6;
@@ -541,11 +572,13 @@ static int uv__udp_set_membership6(uv_udp_t* handle,
     return -errno;
   }
 
+#endif
   return 0;
 }
 
 
 int uv_udp_init(uv_loop_t* loop, uv_udp_t* handle) {
+#if !defined(__NUTTX__)
   uv__handle_init(loop, (uv_handle_t*)handle, UV_UDP);
   handle->alloc_cb = NULL;
   handle->recv_cb = NULL;
@@ -554,11 +587,13 @@ int uv_udp_init(uv_loop_t* loop, uv_udp_t* handle) {
   uv__io_init(&handle->io_watcher, uv__udp_io, -1);
   QUEUE_INIT(&handle->write_queue);
   QUEUE_INIT(&handle->write_completed_queue);
+#endif
   return 0;
 }
 
 
 int uv_udp_open(uv_udp_t* handle, uv_os_sock_t sock) {
+#if !defined(__NUTTX__)
   int err;
 
   /* Check for already active socket. */
@@ -574,6 +609,7 @@ int uv_udp_open(uv_udp_t* handle, uv_os_sock_t sock) {
     return err;
 
   handle->io_watcher.fd = sock;
+#endif
   return 0;
 }
 
@@ -582,6 +618,7 @@ int uv_udp_set_membership(uv_udp_t* handle,
                           const char* multicast_addr,
                           const char* interface_addr,
                           uv_membership membership) {
+#if !defined(__NUTTX__)
   int err;
   struct sockaddr_in addr4;
   struct sockaddr_in6 addr6;
@@ -599,6 +636,9 @@ int uv_udp_set_membership(uv_udp_t* handle,
   } else {
     return -EINVAL;
   }
+#else
+  return -1;
+#endif
 }
 
 
@@ -606,12 +646,13 @@ static int uv__setsockopt_maybe_char(uv_udp_t* handle,
                                      int option4,
                                      int option6,
                                      int val) {
+#if !defined(__NUTTX__)
   int r;
-#if defined(__sun) || defined(_AIX)
+# if defined(__sun) || defined(_AIX)
   char arg = val;
-#else
+# else
   int arg = val;
-#endif
+# endif
 
   if (val < 0 || val > 255)
     return -EINVAL;
@@ -633,10 +674,14 @@ static int uv__setsockopt_maybe_char(uv_udp_t* handle,
     return -errno;
 
   return 0;
+#else
+  return -1;
+#endif
 }
 
 
 int uv_udp_set_broadcast(uv_udp_t* handle, int on) {
+#if !defined(__NUTTX__)
   if (setsockopt(handle->io_watcher.fd,
                  SOL_SOCKET,
                  SO_BROADCAST,
@@ -646,10 +691,14 @@ int uv_udp_set_broadcast(uv_udp_t* handle, int on) {
   }
 
   return 0;
+#else
+  return -1;
+#endif
 }
 
 
 int uv_udp_set_ttl(uv_udp_t* handle, int ttl) {
+#if !defined(__NUTTX__)
   if (ttl < 1 || ttl > 255)
     return -EINVAL;
 
@@ -657,25 +706,37 @@ int uv_udp_set_ttl(uv_udp_t* handle, int ttl) {
                                    IP_TTL,
                                    IPV6_UNICAST_HOPS,
                                    ttl);
+#else
+  return -1;
+#endif
 }
 
 
 int uv_udp_set_multicast_ttl(uv_udp_t* handle, int ttl) {
+#if !defined(__NUTTX__)
   return uv__setsockopt_maybe_char(handle,
                                    IP_MULTICAST_TTL,
                                    IPV6_MULTICAST_HOPS,
                                    ttl);
+#else
+  return -1;
+#endif
 }
 
 
 int uv_udp_set_multicast_loop(uv_udp_t* handle, int on) {
+#if !defined(__NUTTX__)
   return uv__setsockopt_maybe_char(handle,
                                    IP_MULTICAST_LOOP,
                                    IPV6_MULTICAST_LOOP,
                                    on);
+#else
+  return -1;
+#endif
 }
 
 int uv_udp_set_multicast_interface(uv_udp_t* handle, const char* interface_addr) {
+#if !defined(__NUTTX__)
   struct sockaddr_storage addr_st;
   struct sockaddr_in* addr4;
   struct sockaddr_in6* addr6;
@@ -722,12 +783,16 @@ int uv_udp_set_multicast_interface(uv_udp_t* handle, const char* interface_addr)
   }
 
   return 0;
+#else
+  return -1;
+#endif
 }
 
 
 int uv_udp_getsockname(const uv_udp_t* handle,
                        struct sockaddr* name,
                        int* namelen) {
+#if !defined(__NUTTX__)
   socklen_t socklen;
 
   if (handle->io_watcher.fd == -1)
@@ -741,12 +806,16 @@ int uv_udp_getsockname(const uv_udp_t* handle,
 
   *namelen = (int) socklen;
   return 0;
+#else
+  return -1;
+#endif
 }
 
 
 int uv__udp_recv_start(uv_udp_t* handle,
                        uv_alloc_cb alloc_cb,
                        uv_udp_recv_cb recv_cb) {
+#if !defined(__NUTTX__)
   int err;
 
   if (alloc_cb == NULL || recv_cb == NULL)
@@ -766,10 +835,14 @@ int uv__udp_recv_start(uv_udp_t* handle,
   uv__handle_start(handle);
 
   return 0;
+#else
+  return -1;
+#endif
 }
 
 
 int uv__udp_recv_stop(uv_udp_t* handle) {
+#if !defined(__NUTTX__)
   uv__io_stop(handle->loop, &handle->io_watcher, UV__POLLIN);
 
   if (!uv__io_active(&handle->io_watcher, UV__POLLOUT))
@@ -779,4 +852,7 @@ int uv__udp_recv_stop(uv_udp_t* handle) {
   handle->recv_cb = NULL;
 
   return 0;
+#else
+  return -1;
+#endif
 }

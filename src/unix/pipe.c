@@ -252,7 +252,11 @@ int uv_pipe_getsockname(const uv_pipe_t* handle, char* buffer, size_t* size) {
 
 
 int uv_pipe_getpeername(const uv_pipe_t* handle, char* buffer, size_t* size) {
+#if defined(__NUTTX__)
+  return -1;
+#else
   return uv__pipe_getsockpeername(handle, getpeername, buffer, size);
+#endif
 }
 
 

@@ -61,6 +61,10 @@ extern "C" {
 # include "uv-unix.h"
 #endif
 
+#ifdef __NUTTX__
+#include "uv-nuttx.h"
+#endif
+
 /* Expand this list if necessary. */
 #define UV_ERRNO_MAP(XX)                                                      \
   XX(E2BIG, "argument list too long")                                         \

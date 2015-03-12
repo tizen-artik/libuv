@@ -29,9 +29,11 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#ifndef __NUTTX__
 #include <netinet/tcp.h>
-#include <arpa/inet.h>
 #include <netdb.h>
+#endif
+#include <arpa/inet.h>
 
 #include <termios.h>
 #include <pwd.h>
@@ -58,6 +60,8 @@
       defined(__OpenBSD__)    || \
       defined(__NetBSD__)
 # include "uv-bsd.h"
+#elif defined(__NUTTX__)
+# include "uv-nuttx.h"
 #endif
 
 #ifndef NI_MAXHOST
@@ -132,10 +136,14 @@ typedef int uv_os_fd_t;
 typedef pthread_once_t uv_once_t;
 typedef pthread_t uv_thread_t;
 typedef pthread_mutex_t uv_mutex_t;
-typedef pthread_rwlock_t uv_rwlock_t;
 typedef UV_PLATFORM_SEM_T uv_sem_t;
 typedef pthread_cond_t uv_cond_t;
 typedef pthread_key_t uv_key_t;
+#if defined(__NUTTX__)
+typedef pthread_mutex_t uv_rwlock_t;
+#else
+typedef pthread_rwlock_t uv_rwlock_t;
+#endif
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -206,6 +214,7 @@ typedef struct {
   char* errmsg;
 } uv_lib_t;
 
+
 #define UV_LOOP_PRIVATE_FIELDS                                                \
   unsigned long flags;                                                        \
   int backend_fd;                                                             \
@@ -236,6 +245,7 @@ typedef struct {
   uv_signal_t child_watcher;                                                  \
   int emfile_fd;                                                              \
   UV_PLATFORM_LOOP_FIELDS                                                     \
+
 
 #define UV_REQ_TYPE_PRIVATE /* empty */
 

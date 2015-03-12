@@ -1,0 +1,9 @@
+#!/bin/bash
+
+export AR=arm-none-eabi-ar
+export CC=arm-none-eabi-gcc
+export CXX=arm-none-eabi-g++
+export LINK=arm-none-eabi-g++
+export PLATFORM=nuttx
+
+./gyp_uv.py -Dtarget_arch=arm -DOS=nuttx 

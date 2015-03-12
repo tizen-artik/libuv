@@ -34,7 +34,9 @@
 #include <string.h>
 
 /* EAI_* constants. */
+#if !defined(__NUTTX__)
 #include <netdb.h>
+#endif
 
 
 int uv__getaddrinfo_translate_error(int sys_err) {

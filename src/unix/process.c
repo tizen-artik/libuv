@@ -113,6 +113,9 @@ static void uv__chld(uv_signal_t* handle, int signum) {
 
 
 int uv__make_socketpair(int fds[2], int flags) {
+#if defined(__NUTTX__)
+  return -1;
+#else
 #if defined(__linux__)
   static int no_cloexec;
 
@@ -145,6 +148,7 @@ skip:
   }
 
   return 0;
+#endif
 }
 
 
@@ -273,6 +277,7 @@ static void uv__process_child_init(const uv_process_options_t* options,
                                    int stdio_count,
                                    int (*pipes)[2],
                                    int error_fd) {
+#if !defined(__NUTTX__)
   int close_fd;
   int use_fd;
   int fd;
@@ -353,12 +358,14 @@ static void uv__process_child_init(const uv_process_options_t* options,
   execvp(options->file, options->args);
   uv__write_int(error_fd, -errno);
   _exit(127);
+#endif
 }
 
 
 int uv_spawn(uv_loop_t* loop,
              uv_process_t* process,
              const uv_process_options_t* options) {
+#if !defined(__NUTTX__)
   int signal_pipe[2] = { -1, -1 };
   int (*pipes)[2];
   int stdio_count;
@@ -500,6 +507,9 @@ error:
   }
 
   return err;
+#else
+  return -1;
+#endif
 }
 
 

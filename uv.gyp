@@ -10,7 +10,7 @@
           ['OS=="solaris"', {
             'cflags': [ '-pthreads' ],
           }],
-          ['OS not in "solaris android"', {
+          ['OS not in "solaris android nuttx"', {
             'cflags': [ '-pthread' ],
           }],
         ],
@@ -116,7 +116,7 @@
         }, { # Not Windows i.e. POSIX
           'cflags': [
             '-g',
-            '--std=gnu89',
+            '--std=gnu99',
             '-pedantic',
             '-Wall',
             '-Wextra',
@@ -157,7 +157,7 @@
               ['OS=="solaris"', {
                 'ldflags': [ '-pthreads' ],
               }],
-              ['OS != "solaris" and OS != "android"', {
+              ['OS not in "solaris android nuttx"', {
                 'ldflags': [ '-pthread' ],
               }],
             ],
@@ -175,7 +175,7 @@
             }],
           ],
         }],
-        [ 'OS in "linux mac android"', {
+        [ 'OS in "linux mac android nuttx"', {
           'sources': [ 'src/unix/proctitle.c' ],
         }],
         [ 'OS=="mac"', {
@@ -214,6 +214,13 @@
             'src/unix/linux-syscalls.h',
             'src/unix/pthread-fixes.c',
             'src/unix/android-ifaddrs.c'
+          ],
+          'link_settings': {
+            'libraries': [ '-ldl' ],
+          },
+        }],
+        [ 'OS=="nuttx"', {
+          'sources': [
           ],
           'link_settings': {
             'libraries': [ '-ldl' ],
@@ -267,6 +274,12 @@
         ['uv_library=="shared_library"', {
           'defines': [ 'BUILDING_UV_SHARED=1' ]
         }],
+		[ 'OS=="nuttx"', {
+		  'sources': [ 'src/unix/nuttx.c' ],
+		  'include_dirs': [ '/home/ilyoan/project/harmony/nuttx-code/nuttx/include' ],
+		  'defines': [ '__NUTTX__' ],
+          'cflags': [ '-Wno-variadic-macros', '-mcpu=cortex-m4', '-march=armv7e-m', '-mthumb', '-mfloat-abi=soft' ],
+		}],
       ]
     },
 
@@ -473,7 +486,12 @@
             'test/runner-unix.c',
             'test/runner-unix.h',
           ]
-        }]
+        }],
+		[ 'OS=="nuttx"', {
+		  'include_dirs': [ '/home/ilyoan/project/harmony/nuttx-code/nuttx/include' ],
+		  'defines': [ '__NUTTX__' ],
+          'cflags': [ '-Wno-variadic-macros' ],
+		}],
       ],
       'msvs-settings': {
         'VCLinkerTool': {

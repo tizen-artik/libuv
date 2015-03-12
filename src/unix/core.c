@@ -36,7 +36,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <limits.h> /* INT_MAX, PATH_MAX */
+#ifdef __NUTTX__
+#include "uv-nuttx.h"
+#else
 #include <sys/uio.h> /* writev */
+#endif
 #include <sys/resource.h> /* getrusage */
 
 #ifdef __linux__
@@ -72,6 +76,10 @@
 
 #ifdef _AIX
 #include <sys/ioctl.h>
+#endif
+
+#ifdef __NUTTX__
+# include <sys/socket.h>
 #endif
 
 static int uv__run_pending(uv_loop_t* loop);
@@ -588,7 +596,11 @@ int uv__dup(int fd) {
   return fd;
 }
 
-
+#ifdef __NUTTX__
+ssize_t uv__recvmsg(int fd, struct msghdr* msg, int flags) {
+	return -1;
+}
+#else
 ssize_t uv__recvmsg(int fd, struct msghdr* msg, int flags) {
   struct cmsghdr* cmsg;
   ssize_t rc;
@@ -625,6 +637,7 @@ ssize_t uv__recvmsg(int fd, struct msghdr* msg, int flags) {
         uv__cloexec(*pfd, 1);
   return rc;
 }
+#endif
 
 
 int uv_cwd(char* buffer, size_t* size) {
@@ -864,6 +877,11 @@ int uv__io_active(const uv__io_t* w, unsigned int events) {
 }
 
 
+#ifdef __NUTTX__
+int uv_getrusage(uv_rusage_t* rusage) {
+	return 0;
+}
+#else
 int uv_getrusage(uv_rusage_t* rusage) {
   struct rusage usage;
 
@@ -893,6 +911,7 @@ int uv_getrusage(uv_rusage_t* rusage) {
 
   return 0;
 }
+#endif
 
 
 int uv__open_cloexec(const char* path, int flags) {

@@ -142,23 +142,38 @@ void uv_mutex_unlock(uv_mutex_t* mutex) {
 
 
 int uv_rwlock_init(uv_rwlock_t* rwlock) {
+#if defined(__NUTTX__)
+  return uv_mutex_init(rwlock);
+#else
   return -pthread_rwlock_init(rwlock, NULL);
+#endif
 }
 
 
 void uv_rwlock_destroy(uv_rwlock_t* rwlock) {
+#if defined(__NUTTX__)
+  uv_mutex_destroy(rwlock);
+#else
   if (pthread_rwlock_destroy(rwlock))
     abort();
+#endif
 }
 
 
 void uv_rwlock_rdlock(uv_rwlock_t* rwlock) {
+#if defined(__NUTTX__)
+  uv_mutex_lock(rwlock);
+#else
   if (pthread_rwlock_rdlock(rwlock))
     abort();
+#endif
 }
 
 
 int uv_rwlock_tryrdlock(uv_rwlock_t* rwlock) {
+#if defined(__NUTTX__)
+  return uv_mutex_trylock(rwlock);
+#else
   int err;
 
   err = pthread_rwlock_tryrdlock(rwlock);
@@ -166,22 +181,34 @@ int uv_rwlock_tryrdlock(uv_rwlock_t* rwlock) {
     abort();
 
   return -err;
+#endif
 }
 
 
 void uv_rwlock_rdunlock(uv_rwlock_t* rwlock) {
+#if defined(__NUTTX__)
+  uv_mutex_unlock(rwlock);
+#else
   if (pthread_rwlock_unlock(rwlock))
     abort();
+#endif
 }
 
 
 void uv_rwlock_wrlock(uv_rwlock_t* rwlock) {
+#if defined(__NUTTX__)
+  uv_mutex_lock(rwlock);
+#else
   if (pthread_rwlock_wrlock(rwlock))
     abort();
+#endif
 }
 
 
 int uv_rwlock_trywrlock(uv_rwlock_t* rwlock) {
+#if defined(__NUTTX__)
+  return uv_mutex_trylock(rwlock);
+#else
   int err;
 
   err = pthread_rwlock_trywrlock(rwlock);
@@ -189,12 +216,17 @@ int uv_rwlock_trywrlock(uv_rwlock_t* rwlock) {
     abort();
 
   return -err;
+#endif
 }
 
 
 void uv_rwlock_wrunlock(uv_rwlock_t* rwlock) {
+#if defined(__NUTTX__)
+  uv_mutex_unlock(rwlock);
+#else
   if (pthread_rwlock_unlock(rwlock))
     abort();
+#endif
 }
 
 
@@ -330,7 +362,7 @@ int uv_cond_init(uv_cond_t* cond) {
   if (err)
     return -err;
 
-#if !(defined(__ANDROID__) && defined(HAVE_PTHREAD_COND_TIMEDWAIT_MONOTONIC))
+#if !(defined(__ANDROID__) && defined(HAVE_PTHREAD_COND_TIMEDWAIT_MONOTONIC)) && !defined(__NUTTX__)
   err = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
   if (err)
     goto error2;
