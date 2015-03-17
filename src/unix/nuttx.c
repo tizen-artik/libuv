@@ -4,7 +4,6 @@
 
 #include <assert.h>
 #include <poll.h>
-#include <stdio.h>
   
 int uv__platform_loop_init(uv_loop_t* loop) {
   loop->npollfds = 0;
@@ -18,8 +17,6 @@ void uv__platform_loop_delete(uv_loop_t* loop) {
 
 
 void uv__add_pollfd(uv_loop_t* loop, struct pollfd* pe) {
-  printf("uv__add_pollfd - fd: %d\n", pe->fd);
-
   int i;
   bool exist = false;
   for (i = 0; i < loop->npollfds; ++i) {
@@ -42,8 +39,6 @@ void uv__add_pollfd(uv_loop_t* loop, struct pollfd* pe) {
 
 
 void uv__rem_pollfd(uv_loop_t* loop, struct pollfd* pe) {
-  printf("uv__del_pollfd - fd: %d\n");
-
   int i = 0;
   while (i < loop->npollfds) {
     struct pollfd* cur = &loop->pollfds[i];
