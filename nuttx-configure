@@ -6,4 +6,9 @@ export CXX=arm-none-eabi-g++
 export LINK=arm-none-eabi-g++
 export PLATFORM=nuttx
 
-./gyp_uv.py -Dtarget_arch=arm -DOS=nuttx 
+if [ "$#" -eq 1 ]
+then
+	./gyp_uv.py -Dtarget_arch=arm -DOS=nuttx -DNUTTX_HOME=$1
+else
+	echo "usage $0 < NUTTX_HOME >"
+fi

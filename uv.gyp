@@ -115,7 +115,6 @@
           },
         }, { # Not Windows i.e. POSIX
           'cflags': [
-            '-g',
             '--std=gnu99',
             '-pedantic',
             '-Wall',
@@ -276,7 +275,7 @@
         }],
 		[ 'OS=="nuttx"', {
 		  'sources': [ 'src/unix/nuttx.c' ],
-		  'include_dirs': [ '/home/ilyoan/project/harmony/nuttx-code/nuttx/include' ],
+		  'include_dirs': [ '<(NUTTX_HOME)/include' ],
 		  'defines': [ '__NUTTX__' ],
           'cflags': [ '-Wno-variadic-macros', '-mcpu=cortex-m4', '-march=armv7e-m', '-mthumb', '-mfloat-abi=soft' ],
 		}],
@@ -488,9 +487,10 @@
           ]
         }],
 		[ 'OS=="nuttx"', {
-		  'include_dirs': [ '/home/ilyoan/project/harmony/nuttx-code/nuttx/include' ],
+		  'sources': [ 'src/unix/nuttx.c' ],
+		  'include_dirs': [ '<(NUTTX_HOME)/include' ],
 		  'defines': [ '__NUTTX__' ],
-          'cflags': [ '-Wno-variadic-macros' ],
+          'cflags': [ '-Wno-variadic-macros', '-mcpu=cortex-m4', '-march=armv7e-m', '-mthumb', '-mfloat-abi=soft' ],
 		}],
       ],
       'msvs-settings': {
