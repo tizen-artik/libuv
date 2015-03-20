@@ -1058,7 +1058,83 @@ static int uv__stream_recv_cmsg(uv_stream_t* stream, struct msghdr* msg) {
 
 
 static void uv__read(uv_stream_t* stream) {
-#if !defined(__NUTTX__)
+#ifdef __NUTTX__
+  uv_buf_t buf;
+  ssize_t nread;
+  int count;
+  int err;
+  int is_ipc;
+
+  stream->flags &= ~UV_STREAM_READ_PARTIAL;
+
+  /* Prevent loop starvation when the data comes in as fast as (or faster than)
+   * we can read it. XXX Need to rearm fd if we switch to edge-triggered I/O.
+   */
+  count = 32;
+
+  is_ipc = stream->type == UV_NAMED_PIPE && ((uv_pipe_t*) stream)->ipc;
+  ASSERT(!is_ipc); /* msg not support so disable ipc for nuttx */
+
+  /* XXX: Maybe instead of having UV_STREAM_READING we just test if
+   * tcp->read_cb is NULL or not?
+   */
+  while (stream->read_cb
+      && (stream->flags & UV_STREAM_READING)
+      && (count-- > 0)) {
+    assert(stream->alloc_cb != NULL);
+
+    stream->alloc_cb((uv_handle_t*)stream, 2 * 1024, &buf); /* 2K ? */
+    if (buf.len == 0) {
+      /* User indicates it can't or won't handle the read. */
+      stream->read_cb(stream, UV_ENOBUFS, &buf);
+      return;
+    }
+
+    assert(buf.base != NULL);
+    assert(uv__stream_fd(stream) >= 0);
+
+    do {
+      nread = read(uv__stream_fd(stream), buf.base, buf.len);
+    }
+    while (nread < 0 && errno == EINTR);
+
+    if (nread < 0) {
+      /* Error */
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        /* Wait for the next one. */
+        if (stream->flags & UV_STREAM_READING) {
+          uv__io_start(stream->loop, &stream->io_watcher, UV__POLLIN);
+          uv__stream_osx_interrupt_select(stream);
+        }
+        stream->read_cb(stream, 0, &buf);
+      } else {
+        /* Error. User should call uv_close(). */
+        stream->read_cb(stream, -errno, &buf);
+        if (stream->flags & UV_STREAM_READING) {
+          stream->flags &= ~UV_STREAM_READING;
+          uv__io_stop(stream->loop, &stream->io_watcher, UV__POLLIN);
+          if (!uv__io_active(&stream->io_watcher, UV__POLLOUT))
+            uv__handle_stop(stream);
+          uv__stream_osx_interrupt_select(stream);
+        }
+      }
+      return;
+    } else if (nread == 0) {
+      uv__stream_eof(stream, &buf);
+      return;
+    } else {
+      /* Successful read */
+      ssize_t buflen = buf.len;
+
+      stream->read_cb(stream, nread, &buf);
+      /* Return if we didn't fill the buffer, there is no more data to read. */
+      if (nread < buflen) {
+        stream->flags |= UV_STREAM_READ_PARTIAL;
+        return;
+      }
+    }
+  }
+#else
   uv_buf_t buf;
   ssize_t nread;
   struct msghdr msg;
