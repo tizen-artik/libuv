@@ -729,7 +729,7 @@ static int uv__getiovmax() {
 }
 
 static void uv__write(uv_stream_t* stream) {
-#if !defined(__NUTTX__)
+
   struct iovec* iov;
   QUEUE* q;
   uv_write_t* req;
@@ -767,6 +767,7 @@ start:
    * inside the iov each time we write. So there is no need to offset it.
    */
 
+#if !defined(__NUTTX__)
   if (req->send_handle) {
     struct msghdr msg;
     char scratch[64];
@@ -811,6 +812,18 @@ start:
     while (n == -1 && errno == EINTR);
   }
 
+#else
+
+  do {
+    if (iovcnt == 1) {
+      n = write(uv__stream_fd(stream), iov[0].iov_base, iov[0].iov_len);
+    } else {
+      n = writev(uv__stream_fd(stream), iov, iovcnt);
+    }
+  }
+  while (n == -1 && errno == EINTR);
+  
+#endif
   if (n < 0) {
     if (errno != EAGAIN && errno != EWOULDBLOCK) {
       /* Error */
@@ -884,7 +897,7 @@ start:
 
   /* Notify select() thread about state change */
   uv__stream_osx_interrupt_select(stream);
-#endif
+
 }
 
 
