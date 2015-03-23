@@ -498,6 +498,9 @@ int uv__nonblock(int fd, int set) {
 
 
 int uv__cloexec(int fd, int set) {
+#if definec(__NUTTX__)
+	return 0;
+#else
   int r;
 
   do
@@ -508,6 +511,7 @@ int uv__cloexec(int fd, int set) {
     return -errno;
 
   return 0;
+#endif
 }
 
 #else /* !(defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)) */
@@ -544,6 +548,9 @@ int uv__nonblock(int fd, int set) {
 
 
 int uv__cloexec(int fd, int set) {
+#if defined(__NUTTX__)
+  return 0;
+#else
   int flags;
   int r;
 
@@ -571,6 +578,7 @@ int uv__cloexec(int fd, int set) {
     return -errno;
 
   return 0;
+#endif
 }
 
 #endif /* defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__) */
