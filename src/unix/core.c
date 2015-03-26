@@ -498,7 +498,7 @@ int uv__nonblock(int fd, int set) {
 
 
 int uv__cloexec(int fd, int set) {
-#if definec(__NUTTX__)
+#if defined(__NUTTX__)
 	return 0;
 #else
   int r;
