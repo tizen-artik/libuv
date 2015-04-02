@@ -47,7 +47,7 @@
 #define SIGPROF 27
 #endif
 
-#ifndef SIGCHID
+#ifndef SIGCHLD
 #define SIGCHLD 17
 #endif
 
