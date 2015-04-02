@@ -171,7 +171,10 @@ void uv__fs_event_close(uv_fs_event_t* handle) {
 
 
 uint64_t uv__hrtime(uv_clocktype_t type) {
-  return 0;
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  uint64_t ret = (((uint64_t) ts.tv_sec) * ((uint64_t) 1e9) + ts.tv_nsec);
+  return ret;
 }
 
 
