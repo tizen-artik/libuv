@@ -211,4 +211,16 @@ ssize_t readv(int __fd, const struct iovec* __iovec, int __count) {
 
 
 ssize_t writev(int __fd, const struct iovec* __iovec, int __count) {
+  ssize_t result = 0;
+  ssize_t total = 0;
+  int idx;
+  for (idx = 0; idx < __count; ++idx) {
+    result = write(__fd, __iovec[idx].iov_base, __iovec[idx].iov_len);
+	if (result < 0) {
+      return result;
+	} else {
+		total += result;
+	}
+  }
+  return total;
 }
