@@ -277,7 +277,7 @@
 		  'sources': [ 'src/unix/nuttx.c' ],
 		  'include_dirs': [ '<(NUTTX_HOME)/include' ],
 		  'defines': [ '__NUTTX__' ],
-          'cflags': [ '-Wno-variadic-macros', '-mcpu=cortex-m4', '-march=armv7e-m', '-mthumb', '-mfpu=fpv4-sp-d16', '-mfloat-abi=hard' ],
+          'cflags': [ '-Wno-variadic-macros', '-fno-builtin', '-mcpu=cortex-m4', '-mthumb', '-march=armv7e-m', '-mfpu=fpv4-sp-d16', '-mfloat-abi=hard', '-fno-strict-aliasing', '-fno-strength-reduce', '-fomit-frame-pointer'],
 		}],
       ]
     },
