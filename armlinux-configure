@@ -1,0 +1,9 @@
+#!/bin/bash
+
+export AR=arm-linux-gnueabihf-ar
+export CC=arm-linux-gnueabihf-gcc
+export CXX=arm-linux-gnueabihf-g++
+export LINK=arm-linux-gnueabihf-g++
+export PLATFORM=linux
+
+./gyp_uv.py -Dtarget_arch=arm -DOS=linux
